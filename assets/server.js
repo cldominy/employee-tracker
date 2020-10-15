@@ -1,7 +1,7 @@
 // Setting up npm's and server connection
 const mysql = require('mysql');
 const inquirer = require('inquirer');
-const ctable = require('console.table');
+const cTable = require('console.table');
 
 // Connect and starting the application
 const connection = mysql.createConnection({
@@ -75,7 +75,6 @@ const connection = mysql.createConnection({
         startApp();
     })
   }
-
   function viewRoles(){
     connection.query("SELECT * FROM role", function(err, data){
         if(err){
@@ -85,7 +84,6 @@ const connection = mysql.createConnection({
         startApp();
     })
   }
-
   function viewEmployees(){
     connection.query(`SELECT employee.id, employee.first_name, employee.last_name , title, name department, salary, 
     concat(employee2.first_name, " ", employee2.last_name) manager FROM employee
@@ -118,7 +116,6 @@ const connection = mysql.createConnection({
           })
       })
   }
-
   function addRoles(){
     lookup("SELECT name FROM department").then(function(results){
           const departments = results.map(name => name)
@@ -155,7 +152,6 @@ const connection = mysql.createConnection({
         })
     })
 }
-
 function addEmployee(){
     connection.query(`SELECT role_id, title, employee.id employeeID, concat(first_name, " ", last_name) managerName FROM employee
     LEFT JOIN role ON employee.role_id = role.id`, (err, results) => {
@@ -220,28 +216,57 @@ function addEmployee(){
   }
 
 //   Updating Function
-  function updateRoles(){
+function updateRoles(){
+    connection.query(`SELECT role_id, title, employee.id employeeID, concat(first_name, " ", last_name) employeeName FROM employee
+    LEFT JOIN role ON employee.role_id = role.id`, (err, results) => {
+        if (err) {
+          throw err;
+        }
       inquirer.prompt([
           {
-            type: "input",
+            type: "list",
             name: "updateEmployee",
-            message: "Input the ID of the employee",
-          },
-      ]).then(function (answer){
-          const id = answer.updateEmployee
-          inquirer.prompt([
-              {
-                name: "roleInput",
-                type: "input",
-                message: "Enter ID of the role for the employee"
+            message: "Select the employee to update",
+            choices: () => {
+                let employeeArray = [];
+                for (let i = 0; i < results.length; i++) {
+                    employeeArray.push(results[i].employeeName);
+                }
+                return employeeArray;}
+        },
+        {
+            type: "list",
+            name: "updateRole",
+            message: "What is the new role for the employee?",
+            choices: () => {
+                let rolesArray = [];
+                for (let i = 0; i < results.length; i++) {
+                    rolesArray.push(results[i].title);
+                }
+                return rolesArray;}
+        }
+      ]).then(function(answer){
+          let role_id;
+          for (let index = 0; index < results.length; index++) {
+              if (results[index].title === answer.updateRole){
+                  role_id = results[index].role_id
               }
-          ]).then(function (answer){
-              const roleID = answer.roleInput
-              connection.query("UPDATE employee SET role_id = ? WHERE id = ?", [roleID, id], function(err, data){
-                  if (err) throw err;
-                  console.log("Employee updated successfully!")
+          }
+
+          let employee_id;
+          for (let index = 0; index < results.length; index++) {
+              if (results[index].employeeName === answer.updateEmployee){
+                employee_id = results[index].employeeID
+              }
+          }
+
+              connection.query("UPDATE employee_db.employee SET role_id = ? WHERE id = ?;", [role_id, employee_id], function(err, data){
+                  if(err){
+                      throw err
+                  }
+                  console.log("Employee's Role updated successfully!")
                   startApp();
               })
-          })
-      })
-}
+            })
+        })
+  }
