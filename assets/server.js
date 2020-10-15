@@ -157,6 +157,11 @@ const connection = mysql.createConnection({
 }
 
 function addEmployee(){
+    connection.query(`SELECT role_id, title, employee.id employeeID, concat(first_name, " ", last_name) managerName FROM employee
+    LEFT JOIN role ON employee.role_id = role.id`, (err, results) => {
+        if (err) {
+          throw err;
+        }
       inquirer.prompt([
           {
               type: "input",
@@ -167,19 +172,54 @@ function addEmployee(){
               type: "input",
               name: "last",
               message: "What is the last name of the employee?"
-          }
+          },
+          {
+            type: "list",
+            name: "roles",
+            message: "Select one of the following roles for the employee",
+            choices: () => {
+                let roleArray = [];
+                for (let i = 0; i < results.length; i++) {
+                    roleArray.push(results[i].title);
+                }
+                return roleArray;}
+        },
+        {
+            type: "list",
+            name: "manager",
+            message: "Who is the manager for the employee?",
+            choices: () => {
+                let managerArray = ["None"];
+                for (let i = 0; i < results.length; i++) {
+                    managerArray.push(results[i].managerName);
+                }
+                return managerArray;}
+        }
       ]).then(function(answer){
-              connection.query("INSERT INTO employee (first_name, last_name) VALUES (?, ?)", [answer.first, answer.last,], function(err, data){
+          let role_id;
+          for (let index = 0; index < results.length; index++) {
+              if (results[index].title === answer.roles){
+                  role_id = results[index].role_id
+              }
+          }
+          let manager_id;
+          for (let index = 0; index < results.length; index++) {
+              if (results[index].managerName === answer.manager){
+                manager_id = results[index].employeeID
+              }
+          }
+              connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)", [answer.first, answer.last, role_id, manager_id], function(err, data){
                   if(err){
                       throw err
                   }
                   console.log("Employee added successfully!")
                   startApp();
               })
-          
-      })
+            })
+        })
   }
 
+//   Updating Function
   function updateRoles(){
       inquirer.prompt([
           {
